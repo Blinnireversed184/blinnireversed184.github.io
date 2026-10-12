@@ -40,7 +40,7 @@
 (function () {
   const API = {
     MOCK: false,                       // ← 接好后端：false 走真服务（演示模式请改回 true）
-    base: 'https://finch-server.tail36ef08.ts.net:8443',   // ← 公网后端（HTTPS 入口：N1 上的 Tailscale Funnel → 本地 8081）
+    base: 'https://classdisk.dynv6.net:9443',   // ← 公网后端（IPv6 直连：dynv6 DDNS + Let's Encrypt 证书 + N1 上的 nginx 反代到本地 8081）
     token: null,
     user: null
   };

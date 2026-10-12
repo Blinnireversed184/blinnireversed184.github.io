@@ -75,11 +75,80 @@ python3 -m http.server 8080     # 然后打开 http://127.0.0.1:8080/
 systemd 服务 classdrive  →  /opt/classdrive/portal.py（纯 Python 标准库，无依赖）
                           环境变量写在 /etc/systemd/system/classdrive.service
 存储根（移动硬盘）       →  /mnt/disk/ClassDisk/
-监听                     →  0.0.0.0:8081（局域网；公网入口待解决）
+监听                     →  [::]:8081（**IPv4+IPv6 双栈**，`DualStackHTTPServer`）
 内存占用                 →  ~14 MB    开机自启：已启用
 ```
 
-目录结构：
+> ⚠️ **为什么必须双栈**：Python 的 `ThreadingHTTPServer((host, port))` 默认 `AF_INET`，只监听
+> `0.0.0.0` —— 公网 IPv6 连进来会失败，现象和"路由器拦入站"一模一样（本项目为此白查了一轮）。
+> 现在改成 `address_family = socket.AF_INET6` + `IPV6_V6ONLY=0`、bind `::`，`ss` 显示 `*:8081`。
+
+## DDNS（dynv6 · 家宽 IPv6 动态解析）
+
+电信下发的 /64 前缀会变（实测换过一次），所以用 DDNS 把域名顶到当前地址：
+
+```
+域名      classdisk.dynv6.net  （AAAA → N1 的公网 IPv6）
+更新器    /opt/classdrive/ddns.py      环境变量 /etc/classdrive-ddns.env（600，只放 token）
+定时器    classdrive-ddns.timer        开机后 90 秒起，每 5 分钟一次
+状态文件  /var/lib/classdrive-ddns/state.json
+```
+
+选地址的逻辑：**按网卡 MAC 算 EUI-64 接口标识，只认 IID 匹配的那个全球地址**。
+前缀变了内核会在新前缀下自动生成同一个 IID 的地址，脚本每次挑到的就是当前正确的那个，
+不会误推旧前缀的残留地址。地址没变且一小时内有推送过就跳过（dynv6 会回收长期不更新的 zone，
+所以有一小时一次的保活重推）。
+
+```bash
+# 手动跑一次（带 --dry 只打印不推送）
+set -a; . /etc/classdrive-ddns.env; set +a; python3 /opt/classdrive/ddns.py
+systemctl list-timers classdrive-ddns.timer        # 看下次何时跑
+journalctl -u classdrive-ddns.service -n 20        # 看历史
+# 换 token / 换域名：改 /etc/classdrive-ddns.env 后不用重启，下次触发即生效
+```
+
+## HTTPS 公网入口（nginx 9443 + Let's Encrypt DNS-01）
+
+```
+公网 HTTPS   https://classdisk.dynv6.net:9443   ← 前端 api.js 就指这里
+             ↓ nginx（sites-enabled/classdrive，模板见 backend/nginx-classdrive.conf）
+后端         http://127.0.0.1:8081              ← 8081 现在只对局域网开放
+证书         /etc/nginx/ssl/classdisk.dynv6.net.{crt,key}   ECDSA P-256，到期 2027-01-10
+签发/续期    acme.sh v3.1.7 + 自写 dynv6 钩子（纯 shell + python3，N1 上不编译）
+             cron 每天 2/8/14/20 点检查，续期后自动 `systemctl reload nginx`
+```
+
+防火墙边界（ufw）：
+
+```bash
+9443/tcp             ALLOW  Anywhere        ← 公网 HTTPS（v4+v6）
+8081/tcp             ALLOW  192.168.1.0/24  ← 只有局域网能直连后端
+8081/tcp             ALLOW  192.168.2.0/24
+```
+
+签发相关文件（都在 N1 上，**仓库里只有不含凭据的脚本和模板**）：
+
+```
+/opt/classdrive/acme_dynv6.py                     # 用 dynv6 API 增删 _acme-challenge TXT
+/root/.acme.sh/dnsapi/dns_classdynv6.sh           # acme.sh 的 DNS-01 钩子（调上面那个）
+/root/.acme.sh/classdisk.dynv6.net_ecc/           # acme.sh 的证书工作目录
+/etc/nginx/sites-enabled/classdrive               # 站点配置
+```
+
+> ⚠️ **踩过的坑：dynv6 API v2 的 `name` 必须是相对名。** apex 记录是空串，子域写 `_acme-challenge`
+> 而不是 `_acme-challenge.classdisk.dynv6.net`；写全名的话记录不会出现在 DNS 上，Let's Encrypt
+> 会直接报 `No TXT record found at …`（我第一次就是这么失败的）。
+
+```bash
+# 看证书还有多久过期
+openssl x509 -in /etc/nginx/ssl/classdisk.dynv6.net.crt -noout -dates -subject
+# 手动触发续期检查（不到期会 Skip）
+/root/.acme.sh/acme.sh --cron --home /root/.acme.sh
+# 强制立刻续期
+/root/.acme.sh/acme.sh --renew -d classdisk.dynv6.net --force
+```
+
+## 目录结构
 
 ```
 /mnt/disk/ClassDisk/
@@ -118,6 +187,6 @@ PY
 
 - [x] 门户后端（账号 / 归属 / 权限 / 上传落盘 / 缩略图）——已上线 N1，见下节
 - [x] 分片上传 + 断点续传 + Range 下载的真机联调
-- [ ] **公网入口（唯一大石头）**：IPv6+DDNS+证书，或对象存储。现在后端是局域网 http，页面上了 GitHub Pages（HTTPS）会被浏览器按"混合内容"拦掉
-- [ ] 改密码页、管理端（删别人的文件、重置口令、看上传日志）
+- [x] **公网入口**：IPv6 直连 + dynv6 DDNS + Let's Encrypt 证书 + nginx 9443 反代（见上文三节）。前端 `api.js` 的 `base` 已指向 `https://classdisk.dynv6.net:9443`
+- [ ] 剩下的都是前端体验项：改密码页、管理端（删任意文件 / 重置口令 / 看日志）、上传队列刷新后续传
 - [ ] 视频封面已实现（前端抓首帧回传）；注意只支持浏览器能解的编码（mp4/H.264 最稳）
