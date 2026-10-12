@@ -1,0 +1,18 @@
+# 只在本地留着、不推到公网仓库的东西
+
+# 交接文档：含管理员口令 / 班级口令 / 内网细节，绝不上公网
+STATUS.md
+
+# 后端源码（含邀请码默认值），单独维护，不随前端发到 GitHub Pages
+backend/
+
+# 运行时 / 临时文件
+.portal/
+*.part
+*.bak-*
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+node_modules/
+.hermes/

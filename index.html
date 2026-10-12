@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f9d58">
+<title>班级网盘</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<!-- ============ 登录 ============ -->
+<div id="login" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M4 7a3 3 0 0 1 3-3h3.6a3 3 0 0 1 2.1.9l.9.9H17a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7Z" fill="currentColor" opacity=".22"/><path d="M4 9.5h16v6A3.5 3.5 0 0 1 16.5 19h-9A3.5 3.5 0 0 1 4 15.5v-6Z" fill="currentColor"/></svg>
+    </div>
+    <h1>班级网盘</h1>
+    <p class="login-sub">Eternal 2526 · 登录后查看与上传</p>
+    <form id="loginForm" autocomplete="on">
+      <label class="field">
+        <span id="userLabel">用户名</span>
+        <input id="loginUser" name="username" type="text" inputmode="text" autocomplete="username" placeholder="你的名字，支持中文" required>
+      </label>
+      <label class="field">
+        <span id="passLabel">密码</span>
+        <input id="loginPass" name="password" type="password" autocomplete="current-password" placeholder="你的登录密码" required>
+      </label>
+      <p class="field-hint" id="passHint" hidden>自己设一个（至少 4 位），别忘了；忘了找管理员重置</p>
+      <label class="field reg-only" hidden>
+        <span>班级口令</span>
+        <input id="regInvite" type="text" maxlength="32" placeholder="问班长要">
+      </label>
+      <div id="loginErr" class="login-err" role="alert" hidden></div>
+      <button class="btn btn-primary btn-block" type="submit" id="loginBtn">进入</button>
+      <button class="link-btn" type="button" id="switchMode">没有账号？用班级口令注册</button>
+    </form>
+    <p class="login-foot">仅供本班使用 · 请勿外传</p>
+  </div>
+</div>
+
+<!-- ============ 主体 ============ -->
+<div id="app" class="app" hidden>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="side-top">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">班级网盘</span>
+      </div>
+    </div>
+
+    <nav class="tree" id="tree" aria-label="目录">
+      <!-- JS 渲染 -->
+    </nav>
+
+    <div class="side-bottom">
+      <div class="quota">
+        <div class="quota-row">
+          <span>硬盘空间</span><span id="quotaText">—</span>
+        </div>
+        <div class="quota-bar"><i id="quotaFill" style="width:0%"></i></div>
+      </div>
+      <div class="user-chip">
+        <span class="avatar" id="userAvatar">?</span>
+        <span class="user-meta">
+          <b id="userName">—</b>
+          <small id="userRole">—</small>
+        </span>
+        <button class="icon-btn" id="logoutBtn" title="退出登录" aria-label="退出登录">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M10 17l-5-5 5-5M5 12h9M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" id="menuBtn" aria-label="目录">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="search">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm6.5-1.5L22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input id="searchInput" type="search" placeholder="搜索文件名或上传者…" aria-label="搜索">
+        <button class="icon-btn" id="searchClear" hidden aria-label="清空">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="top-actions">
+        <button class="btn btn-primary" id="uploadBtn">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="only-desktop">上传</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="crumbs" id="crumbs"></div>
+
+    <div class="toolbar">
+      <div class="count" id="countText">—</div>
+      <div class="view-toggle" role="tablist" aria-label="视图">
+        <button class="seg is-on" data-view="grid" role="tab" aria-selected="true" title="网格">
+          <svg viewBox="0 0 24 24" width="17" height="17"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="currentColor"/></svg>
+        </button>
+        <button class="seg" data-view="list" role="tab" aria-selected="false" title="列表">
+          <svg viewBox="0 0 24 24" width="17" height="17"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <label class="sort">
+        <span class="only-desktop">排序</span>
+        <select id="sortSel">
+          <option value="mtime-desc">最新上传</option>
+          <option value="name-asc">名称 A→Z</option>
+          <option value="size-desc">体积从大到小</option>
+          <option value="uploader-asc">上传者</option>
+        </select>
+      </label>
+    </div>
+
+    <section id="files" class="files grid" aria-live="polite"></section>
+    <div id="empty" class="empty" hidden></div>
+  </main>
+</div>
+
+<!-- ============ 上传面板 ============ -->
+<div id="uploader" class="uploader" hidden>
+  <div class="up-head">
+    <b>上传队列</b>
+    <div class="up-head-actions">
+      <button class="btn btn-ghost btn-sm" id="upRetry" hidden>全部重试</button>
+      <button class="btn btn-ghost btn-sm" id="upMin">收起</button>
+    </div>
+  </div>
+  <ul id="upList" class="up-list"></ul>
+</div>
+
+<!-- ============ 预览 ============ -->
+<div id="viewer" class="viewer" hidden>
+  <div class="viewer-head">
+    <span class="viewer-title">
+      <b id="viewerName">—</b>
+      <span id="viewerTags" class="v-tags"></span>
+    </span>
+    <div>
+      <button class="btn btn-ghost btn-sm" id="viewerTag" hidden>
+        <svg viewBox="0 0 24 24" width="15" height="15"><path d="M11.6 4H20v8.4l-8.3 8.3a1.6 1.6 0 0 1-2.3 0l-6.1-6.1a1.6 1.6 0 0 1 0-2.3L11.6 4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="16.2" cy="7.8" r="1.5" fill="currentColor"/></svg>
+        标签
+      </button>
+      <a class="btn btn-ghost btn-sm" id="viewerDl" download>下载</a>
+      <button class="icon-btn" id="viewerClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="viewer-body" id="viewerBody"></div>
+</div>
+
+<!-- ============ 管理标签（只有管理员有入口） ============ -->
+<div id="tagModal" class="modal" hidden>
+  <div class="modal-card" role="dialog" aria-label="管理标签">
+    <div class="modal-head">
+      <b>管理标签</b>
+      <button class="icon-btn" id="tagModalClose" aria-label="关闭">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <p class="modal-sub">标签是全班共用的预设：同学上传后只能从这些标签里挑，只有管理员能在这里增、改、删。分类（分类 = 标签的文件夹，比如「同学名字」）可以把标签归到一起，点分类名能一次筛出这一类下的所有文件。</p>
+    <div class="modal-sec">分类</div>
+    <ul id="groupList" class="tag-list"></ul>
+    <form id="groupAddForm" class="tag-add group-add">
+      <input id="groupAddName" maxlength="16" placeholder="新分类名，例如：同学名字" required>
+      <button class="btn" type="submit">加分类</button>
+    </form>
+    <div class="modal-sec">标签</div>
+    <input id="tagFilter" class="tag-filter" type="search" placeholder="搜标签（名字）…">
+    <ul id="tagList" class="tag-list"></ul>
+    <form id="tagAddForm" class="tag-add">
+      <input id="tagAddName" maxlength="12" placeholder="新标签名（最多 12 字）" required>
+      <select id="tagAddGroup" aria-label="所属分类"></select>
+      <div class="palette" id="tagPalette" role="group" aria-label="颜色"></div>
+      <button class="btn btn-primary" type="submit">添加</button>
+    </form>
+  </div>
+</div>
+
+<input id="filePicker" type="file" multiple hidden>
+<input id="dirPicker" type="file" webkitdirectory hidden>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
