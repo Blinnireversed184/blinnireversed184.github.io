@@ -6,9 +6,11 @@
 
    后端只需实现下面这 9 个接口（这就是契约，前后端可以并行开发）：
 
-   POST /api/login          {username,password}      → {token, user:{id,name,nick,role}}
+   POST /api/login          {username,password}      → {token, user:{id,name,nick,role,mustChange}}
+   POST /api/password       {old,new}                ← 改自己的密码（首登强制改密也走这里）
    POST /api/logout         (Bearer token)
    GET  /api/me                                       → {user}
+   (mustChange=true 时，除以上三个接口外一律 403「请先修改初始密码」)
    GET  /api/list?path=/学习资料                       → {path, items:[Item]}
    GET  /api/search?q=关键词&scope=all|mine            → {items:[Item]}
    POST /api/mkdir          {path}
@@ -169,6 +171,12 @@
       return { token: 'mock-' + Date.now(), user: mockUser };
     },
     async me() { return { user: mockUser }; },
+    async changePassword(oldPw, newPw) {
+      await sleep(300);
+      if (newPw.length < 4) throw new Error('新密码至少 4 位');
+      mockUser = { ...(mockUser || { name: '同学' }), mustChange: false };
+      return { ok: true, user: mockUser };
+    },
     async logout() { mockUser = null; },
     async register(username, password, invite) {
       await sleep(420);
@@ -377,6 +385,10 @@
         body: JSON.stringify({ username, password, invite }) });
     },
     async me() { return req('/api/me'); },
+    async changePassword(oldPw, newPw) {
+      return req('/api/password', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old: oldPw, new: newPw }) });
+    },
     async logout() { try { await req('/api/logout', { method: 'POST' }); } catch (e) {} },
     async list(path, tag, group) {
       return req('/api/list?path=' + encodeURIComponent(path) + filterQ(tag, group));
@@ -440,6 +452,7 @@
     login: (u, p) => (API.MOCK ? mock : real).login(u, p),
     register: (u, p, i) => (API.MOCK ? mock : real).register(u, p, i),
     me: () => (API.MOCK ? mock : real).me(),
+    changePassword: (o, n) => (API.MOCK ? mock : real).changePassword(o, n),
     logout: () => (API.MOCK ? mock : real).logout(),
     list: (p, t, g) => (API.MOCK ? mock : real).list(p, t, g),
     search: (q, s, t, g) => (API.MOCK ? mock : real).search(q, s, t, g),

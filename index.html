@@ -29,13 +29,43 @@
       <p class="field-hint" id="passHint" hidden>自己设一个（至少 4 位），别忘了；忘了找管理员重置</p>
       <label class="field reg-only" hidden>
         <span>班级口令</span>
-        <input id="regInvite" type="text" maxlength="32" placeholder="问班长要">
+        <input id="regInvite" type="text" maxlength="32" placeholder="填班级口令">
       </label>
+      <p class="field-hint reg-only" id="inviteHint" hidden>口令为筱湘班军训口号第三句</p>
       <div id="loginErr" class="login-err" role="alert" hidden></div>
       <button class="btn btn-primary btn-block" type="submit" id="loginBtn">进入</button>
       <button class="link-btn" type="button" id="switchMode">没有账号？用班级口令注册</button>
     </form>
     <p class="login-foot">仅供本班使用 · 请勿外传</p>
+  </div>
+</div>
+
+<!-- ============ 首次登录：强制改密码 ============ -->
+<div id="pwScreen" class="login-screen" hidden>
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M12 3a5 5 0 0 1 5 5v2h.5A1.5 1.5 0 0 1 19 11.5v7A1.5 1.5 0 0 1 17.5 20h-11A1.5 1.5 0 0 1 5 18.5v-7A1.5 1.5 0 0 1 6.5 10H7V8a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v2h6V8a3 3 0 0 0-3-3Zm0 8.2a1.8 1.8 0 0 0-.9 3.36V18.5h1.8v-1.94A1.8 1.8 0 0 0 12 13.2Z" fill="currentColor"/></svg>
+    </div>
+    <h1>设置新密码</h1>
+    <p class="login-sub" id="pwWho">第一次登录，请把初始密码改成你自己的</p>
+    <form id="pwForm" autocomplete="on">
+      <label class="field">
+        <span>初始密码</span>
+        <input id="pwOld" type="password" autocomplete="current-password" placeholder="名字首字母 + 123456" required>
+      </label>
+      <label class="field">
+        <span>新密码</span>
+        <input id="pwNew" type="password" autocomplete="new-password" placeholder="自己设一个，至少 4 位" required>
+      </label>
+      <label class="field">
+        <span>再输一次</span>
+        <input id="pwNew2" type="password" autocomplete="new-password" placeholder="和上面一致" required>
+      </label>
+      <div id="pwErr" class="login-err" role="alert" hidden></div>
+      <button class="btn btn-primary btn-block" type="submit" id="pwBtn">保存并进入</button>
+      <button class="link-btn" type="button" id="pwOut">换个账号登录</button>
+    </form>
+    <p class="login-foot">改完才能进网盘 · 忘了密码找管理员重置</p>
   </div>
 </div>
 

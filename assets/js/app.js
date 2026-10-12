@@ -132,6 +132,7 @@
       API.token = r.token; state.user = r.user;
       localStorage.setItem(LS_TOKEN, r.token);
       localStorage.setItem(LS_USER, JSON.stringify(r.user));
+      if (state.user.mustChange) return askNewPassword(pass);   // 首登：改完密码才放行
       showApp();
     } catch (ex) {
       err.textContent = ex.message;
@@ -142,6 +143,46 @@
   });
 
   $('#logoutBtn').addEventListener('click', async () => {
+    await API.logout();
+    localStorage.removeItem(LS_TOKEN); localStorage.removeItem(LS_USER);
+    location.reload();
+  });
+
+  /* ---------------- 首次登录：强制改密码 ---------------- */
+  function askNewPassword(prefillOld) {
+    $('#login').hidden = true;
+    $('#pwScreen').hidden = false;
+    $('#pwWho').textContent = (state.user && state.user.name ? state.user.name + '，' : '') +
+      '第一次登录，请把初始密码改成你自己的';
+    $('#pwErr').hidden = true;
+    if (prefillOld) $('#pwOld').value = prefillOld;
+    ($('#pwOld').value ? $('#pwNew') : $('#pwOld')).focus();
+  }
+
+  $('#pwForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('#pwBtn'), err = $('#pwErr');
+    err.hidden = true;
+    const oldPw = $('#pwOld').value, n1 = $('#pwNew').value, n2 = $('#pwNew2').value;
+    if (n1 !== n2) { err.textContent = '两次输入的新密码不一样'; err.hidden = false; return; }
+    if (n1.length < 4) { err.textContent = '新密码至少 4 位'; err.hidden = false; return; }
+    btn.disabled = true; btn.textContent = '保存中…';
+    try {
+      const r = await API.changePassword(oldPw, n1);
+      state.user = r.user || Object.assign({}, state.user, { mustChange: false });
+      localStorage.setItem(LS_USER, JSON.stringify(state.user));
+      $('#pwOld').value = ''; $('#pwNew').value = ''; $('#pwNew2').value = '';
+      $('#pwScreen').hidden = true;
+      showApp();
+    } catch (ex) {
+      err.textContent = ex.message;
+      err.hidden = false;
+    } finally {
+      btn.disabled = false; btn.textContent = '保存并进入';
+    }
+  });
+
+  $('#pwOut').addEventListener('click', async () => {
     await API.logout();
     localStorage.removeItem(LS_TOKEN); localStorage.removeItem(LS_USER);
     location.reload();
@@ -1001,6 +1042,7 @@
       try {
         const r = await API.me();
         state.user = r.user || JSON.parse(u);
+        if (state.user.mustChange) { askNewPassword(''); return; }   // 上次没改完就关掉了
         showApp();
         return;
       } catch (e) { localStorage.removeItem(LS_TOKEN); localStorage.removeItem(LS_USER); }
